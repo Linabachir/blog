@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>createdbylina</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="logo" onclick="goHome()">createdbylina</div>
+
+    <nav>
+      <ul>
+        <li><a href="#">Home</a></li>
+
+        <li class="dropdown">
+          <a href="#">Destinations ▼</a>
+          <ul class="dropdown-menu">
+            <li><a href="#">Asia</a></li>
+            <li><a href="#">Europe</a></li>
+            <li><a href="#">Africa</a></li>
+          </ul>
+        </li>
+
+        <li><a href="#">About me</a></li>
+        <li><a href="#">Work with me</a></li>
+
+        <li>
+          <select id="lang-switch">
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+          </select>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1 id="title">My Travel Blog</h1>
+  </section>
+
+  <!-- CONTENT -->
+  <section class="content">
+    <h2 id="latest">Latest Destinations</h2>
+
+    <div class="cards">
+      <div class="card">
+        <img src="images/destination1.jpg" alt="">
+        <h3>Bali</h3>
+      </div>
+
+      <div class="card">
+        <img src="images/destination2.jpg" alt="">
+        <h3>Morocco</h3>
+      </div>
+
+      <div class="card">
+        <img src="images/destination3.jpg" alt="">
+        <h3>Vietnam</h3>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
