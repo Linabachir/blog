@@ -252,6 +252,7 @@ function shell({ title, desc, canonical, og = {}, current, root, body }) {
   <link rel="stylesheet" href="${root}site.css">
   <style>${PALETTE}
   </style>
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
 ${nav(current)}
@@ -260,6 +261,9 @@ ${body}
 </main>
 ${footer()}
 <script src="${root}site.js" defer></script>
+<script>
+if(window.netlifyIdentity){window.netlifyIdentity.on("init",function(u){if(!u){window.netlifyIdentity.on("login",function(){document.location.href="/admin/";});}});}
+</script>
 </body>
 </html>`;
 }
