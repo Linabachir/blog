@@ -6,7 +6,7 @@ photo: /uploads/rooftop_vu_bkk.jpeg
 featured: false
 readMin: 9
 date: 2024-11-02
-kicker: BANGKOK · 8 JOURS
+kicker: BANGKOK · 8 JOURS/ 7 nuits
 title: Bangkok & Muay Thai
 dek: Je n'étais pas là pour Bangkok. J'étais là pour la boxe thaïlandaise. Et la
   ville m'a surprise.
