@@ -1,0 +1,10 @@
+{
+  "name": "created-bylina",
+  "version": "1.0.0",
+  "description": "created.bylina — static travel blog",
+  "scripts": {
+    "build": "node build.js",
+    "preview": "npx serve dist -l 3000"
+  },
+  "private": true
+}

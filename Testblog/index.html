@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>created.bylina — Carnet de voyage</title>
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    /* ============================================
+       PALETTE OVERRIDE — "Pure editorial"
+       Warm paper + espresso band + muted tonal cards.
+       Replaces the candy pastels & navy with a calmer,
+       gallery-like scheme. Accent is set live by the Tweak.
+       ============================================ */
+    :root {
+      /* surfaces — warm paper, not stark white */
+      --bl-canvas:  #f7f4ee;
+      --bl-surface: #efeae1;
+
+      /* text — warm ink, softer than pure black */
+      --bl-ink:      #262320;
+      --bl-charcoal: #3a352f;
+      --bl-slate:    #6a635a;
+      --bl-steel:    #8b8479;
+      --bl-stone:    #b4ada0;
+
+      /* dark band — warm espresso instead of navy */
+      --bl-navy:      #2b2722;
+      --bl-navy-deep: #221e1a;
+
+      /* hairlines — warm */
+      --bl-hairline:        #e6e0d4;
+      --bl-hairline-strong: #cfc7b8;
+
+      /* muted, tonal card tints (was: bright pastels) */
+      --bl-tint-mint:        #e1e5dd;
+      --bl-tint-sky:         #dde2e3;
+      --bl-tint-peach:       #ecdfd2;
+      --bl-tint-rose:        #ece0dc;
+      --bl-tint-lavender:    #e6e1d8;
+      --bl-tint-cream:       #efe8da;
+      --bl-tint-yellow:      #f0e9d6;
+      --bl-tint-yellow-bold: #e7d6b0;
+
+      /* default accent — clay (Tweak overrides at runtime) */
+      --accent:         #b0694e;
+      --accent-pressed: #97583f;
+      --accent-deep:    #7d4732;
+    }
+
+    body { margin: 0; background: var(--bg-page); color: var(--fg-1); }
+    * { box-sizing: border-box; }
+    a { color: inherit; }
+    button { font-family: var(--font-sans); }
+    /* prevent native focus ring jaggies on click */
+    a:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline: none; }
+
+    /* smooth scroll for in-page anchors */
+    html { scroll-behavior: smooth; }
+
+    /* Photo slots — brand the drag-and-drop placeholder with the
+       destination gradient, hide the dashed ring, and hide the serif
+       label once a real photo has been dropped in. */
+    image-slot { display: block; }
+    image-slot::part(frame) { background: transparent; }
+    image-slot::part(ring) { display: none; }
+    image-slot[data-filled] + .bl-photo-label { display: none; }
+  </style>
+</head>
+<body data-screen-label="01 Home">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="articles.js"></script>
+  <script src="image-slot.js"></script>
+  <script src="content.js"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="pages.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // Tweakable defaults — host parses & rewrites this JSON
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "navStyle": "classic",
+      "showPromo": true,
+      "accent": "clay"
+    }/*EDITMODE-END*/;
+
+    const ACCENTS = {
+      clay: ["#b0694e", "#97583f", "#7d4732"],
+      sage: ["#6f7d62", "#5e6b53", "#4d5743"],
+      teal: ["#4f7d78", "#426b66", "#355753"],
+      ink:  ["#2b2823", "#211e1a", "#181612"],
+    };
+
+    function App() {
+      const [lang, setLang] = useState("fr");
+      const [route, setRoute] = useState({ kind: "page", id: "home" });
+
+      // Tweaks
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+      const ui = window.BL_DATA.UI[lang];
+
+      // Always scroll to top on nav (except the initial mount)
+      useEffect(() => {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        // label for comment context
+        const labels = {
+          home: "01 Home",
+          destinations: "02 Destinations",
+          solo: "03 Voyager seule",
+          about: "04 \u00c0 propos",
+          collab: "05 Collaborer",
+        };
+        const lbl =
+          route.kind === "page"      ? labels[route.id] || route.id :
+          route.kind === "continent" ? `Continent / ${route.id}` :
+          route.kind === "country"   ? `Country / ${route.id}` :
+          route.kind === "article"   ? `Article / ${route.id}` :
+          route.id;
+        document.body.setAttribute("data-screen-label", lbl);
+      }, [route]);
+
+      useEffect(() => { document.documentElement.lang = lang; }, [lang]);
+
+      // Live accent palette
+      useEffect(() => {
+        const p = ACCENTS[tweaks.accent] || ACCENTS.clay;
+        const r = document.documentElement;
+        r.style.setProperty("--accent", p[0]);
+        r.style.setProperty("--accent-pressed", p[1]);
+        r.style.setProperty("--accent-deep", p[2]);
+      }, [tweaks.accent]);
+
+      // Navigate handler
+      const navigate = (to) => {
+        if (!to) return;
+        if (to.kind === "ext") { window.open(to.url, "_blank"); return; }
+        setRoute(to);
+      };
+      const openArticle = (id) => setRoute({ kind: "article", id });
+
+      // "Surprise me" — random article
+      const shuffle = () => {
+        const arts = window.BL_DATA.ARTICLES;
+        const pick = arts[Math.floor(Math.random() * arts.length)];
+        setRoute({ kind: "article", id: pick.id });
+      };
+
+      // Which top-nav link is active
+      const activeNav =
+        route.kind === "page"      ? route.id :
+        route.kind === "continent" ? "destinations" :
+        route.kind === "country"   ? "destinations" :
+        route.kind === "article"   ? null :
+        null;
+
+      // ----- page switch ----------
+      let page;
+      if (route.kind === "page" && route.id === "home")          page = <HomePage          ui={ui} lang={lang} onNavigate={navigate} onOpenArticle={openArticle} onShuffle={shuffle}/>;
+      else if (route.kind === "page" && route.id === "destinations") page = <DestinationsPage ui={ui} lang={lang} onNavigate={navigate}/>;
+      else if (route.kind === "page" && route.id === "solo")     page = <SoloPage          ui={ui} lang={lang} onNavigate={navigate}/>;
+      else if (route.kind === "page" && route.id === "about")    page = <AboutPage         ui={ui} lang={lang} onNavigate={navigate}/>;
+      else if (route.kind === "page" && route.id === "collab")   page = <CollabPage        ui={ui} lang={lang} onNavigate={navigate}/>;
+      else if (route.kind === "continent")                       page = <ContinentPage     ui={ui} lang={lang} continentId={route.id} onNavigate={navigate} onOpenArticle={openArticle}/>;
+      else if (route.kind === "country")                         page = <CountryPage       ui={ui} lang={lang} countryId={route.id}   onNavigate={navigate} onOpenArticle={openArticle}/>;
+      else if (route.kind === "article")                         page = <ArticlePage       ui={ui} lang={lang} articleId={route.id}   onNavigate={navigate} onOpenArticle={openArticle}/>;
+      else                                                       page = <HomePage          ui={ui} lang={lang} onNavigate={navigate} onOpenArticle={openArticle} onShuffle={shuffle}/>;
+
+      return (
+        <>
+          {tweaks.showPromo && (
+            <PromoBanner
+              text={lang === "fr"
+                ? "Nouveau carnet \u2014 Ma premi\u00e8re exp\u00e9rience seule \u00e0 Ta\u00efwan, \u00e0 22 ans."
+                : "New journal \u2014 My first time alone in Taiwan, at 22."}
+              link={lang === "fr" ? "Lire \u2192" : "Read \u2192"}
+              onLink={() => openArticle("taiwan-first-solo")}
+            />
+          )}
+
+          <Nav
+            ui={ui}
+            lang={lang}
+            onLang={setLang}
+            current={activeNav}
+            onNavigate={navigate}
+            navStyle={tweaks.navStyle}
+          />
+
+          <main>{page}</main>
+
+          <Footer ui={ui} onNavigate={navigate}/>
+
+          {/* Tweaks panel */}
+          <TweaksPanel title={lang === "fr" ? "R\u00e9glages" : "Tweaks"}>
+            <TweakSection label={lang === "fr" ? "Couleur d'accent" : "Accent color"}>
+              <TweakRadio
+                label={lang === "fr" ? "Teinte" : "Tone"}
+                value={tweaks.accent}
+                options={[
+                  { value: "clay", label: lang === "fr" ? "Terre" : "Clay" },
+                  { value: "sage", label: lang === "fr" ? "Sauge" : "Sage" },
+                  { value: "teal", label: lang === "fr" ? "Bleu" : "Teal" },
+                  { value: "ink",  label: lang === "fr" ? "Encre" : "Ink" },
+                ]}
+                onChange={(v) => setTweak("accent", v)}
+              />
+            </TweakSection>
+            <TweakSection label={lang === "fr" ? "Navigation" : "Navigation"}>
+              <TweakRadio
+                label={lang === "fr" ? "Style" : "Style"}
+                value={tweaks.navStyle}
+                options={[
+                  { value: "classic",   label: lang === "fr" ? "Classique" : "Classic" },
+                  { value: "split",     label: lang === "fr" ? "Aligné" : "Split" },
+                  { value: "editorial", label: lang === "fr" ? "Éditorial" : "Editorial" },
+                ]}
+                onChange={(v) => setTweak("navStyle", v)}
+              />
+              <TweakToggle
+                label={lang === "fr" ? "Afficher la bannière promo" : "Show promo banner"}
+                value={tweaks.showPromo}
+                onChange={(v) => setTweak("showPromo", v)}
+              />
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Generated site — deploy dist/ but don't version it
+dist/
+
+# Node
+node_modules/
