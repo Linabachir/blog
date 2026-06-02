@@ -1,0 +1,41 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "uploads"
+public_folder: "/uploads"
+
+collections:
+  - name: "articles"
+    label: "Articles"
+    folder: "content/articles"
+    create: true
+    slug: "{{fields.id}}"
+    extension: "md"
+    format: "frontmatter"
+    fields:
+      - { label: "ID (slug URL, ex: japon-tokyo)", name: "id", widget: "string" }
+      - { label: "Pays (ex: vietnam)", name: "country", widget: "string" }
+      - label: "Photo principale"
+        name: "photo"
+        widget: "image"
+        required: false
+        media_folder: "/uploads"
+        public_folder: "/uploads"
+      - label: "Position de la photo"
+        name: "photoPosition"
+        widget: "select"
+        required: false
+        default: "center"
+        options:
+          - { label: "Centre", value: "center" }
+          - { label: "Haut", value: "top" }
+          - { label: "Bas", value: "bottom" }
+          - { label: "Personnalisé (ex: 50% 30%)", value: "50% 30%" }
+      - { label: "Article en vedette ?", name: "featured", widget: "boolean", default: false }
+      - { label: "Temps de lecture (min)", name: "readMin", widget: "number", default: 10 }
+      - { label: "Date de publication", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "DD/MM/YYYY", time_format: false }
+      - { label: "Kicker (ex: VIETNAM · 8 JOURS)", name: "kicker", widget: "string" }
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Description courte (dek)", name: "dek", widget: "string" }
+      - { label: "Contenu de l'article", name: "body", widget: "markdown" }

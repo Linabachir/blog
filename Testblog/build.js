@@ -8,9 +8,43 @@
 
 const fs   = require('fs');
 const path = require('path');
+const matter = require('gray-matter');
+const { marked } = require('marked');
 
-const ARTICLES = require('./data/articles');
 const { CONTINENTS, COUNTRIES } = require('./data/content');
+
+// Custom marked renderer — preserves CSS classes used by site.css
+const renderer = {
+  paragraph({ text }) { return `<p class="art-p">${text}</p>\n`; },
+  heading({ text, depth }) {
+    const plain = text.replace(/<[^>]+>/g, '');
+    if (depth === 2) return `<h2 class="art-h2" id="${slugify(plain)}">${text}</h2>\n`;
+    return `<h${depth}>${text}</h${depth}>\n`;
+  },
+  blockquote({ text }) {
+    const inner = text.replace(/<p class="art-p">([\s\S]*?)<\/p>\n?/g, '$1');
+    return `<blockquote class="art-quote">${inner.trim()}</blockquote>\n`;
+  },
+  list({ body }) { return `<ul class="art-ul">${body}</ul>\n`; },
+};
+marked.use({ renderer });
+
+function loadArticles() {
+  const dir = path.join(__dirname, 'content', 'articles');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter(f => f.endsWith('.md'))
+    .map(f => {
+      const raw = fs.readFileSync(path.join(dir, f), 'utf8');
+      const { data, content } = matter(raw);
+      const headings = [...content.matchAll(/^## (.+)$/gm)].map(m => ({ text: m[1].trim() }));
+      const body = marked.parse(content);
+      return { ...data, headings, body };
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+const ARTICLES = loadArticles();
 
 const DIST        = path.join(__dirname, 'dist');
 const SITE_DOMAIN = 'https://created.bylina.com';
@@ -234,14 +268,13 @@ ${footer()}
 // Post card (used everywhere an article is listed)
 // ---------------------------------------------------------------------------
 function postCard(article) {
-  const a    = article.fr;
   const date = new Date(article.date).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
   return `<a href="/articles/${article.id}/" class="post-card">
   <div class="post-card__img">${photo(article.img, { aspect: '16/10', src: article.photo ? `/uploads/${article.photo}` : undefined, position: article.photoPosition || 'center' })}</div>
   <div class="post-card__body">
-    ${kicker(a.kicker, 'var(--fg-3)', '10px')}
-    <h3 class="post-card__title">${esc(a.title)}</h3>
-    <p class="post-card__dek">${esc(a.dek)}</p>
+    ${kicker(article.kicker, 'var(--fg-3)', '10px')}
+    <h3 class="post-card__title">${esc(article.title)}</h3>
+    <p class="post-card__dek">${esc(article.dek)}</p>
     <div class="post-card__meta">
       <span>${article.readMin} min de lecture</span>
       <span>·</span>
@@ -376,8 +409,8 @@ function buildHome() {
         <a href="/articles/${featured.id}/" class="featured-card">
           ${photo(featured.img, { aspect:'4/3' })}
           <div class="featured-card__body">
-            <span class="featured-card__kicker">${esc(featured.fr.kicker)}</span>
-            <h3 class="featured-card__title">${esc(featured.fr.title)}</h3>
+            <span class="featured-card__kicker">${esc(featured.kicker)}</span>
+            <h3 class="featured-card__title">${esc(featured.title)}</h3>
             <div class="featured-card__meta">Par Lina Bachir · ${featured.readMin} min de lecture</div>
           </div>
         </a>
@@ -643,16 +676,15 @@ function buildCountry(country) {
 }
 
 function buildArticle(article) {
-  const a = article.fr;
-  if (!a.body || a.body.length === 0) {
+  if (!article.body) {
     console.log('\nArticle (skipped — no body):', article.id);
     return;
   }
   console.log('\nArticle:', article.id);
 
   const country  = COUNTRIES.find(c => c.id === article.country);
-  const headings = a.body.filter(b => b.kind === 'h');
-  const others   = [...ARTICLES].filter(x => x.id !== article.id && x.fr.body)
+  const headings = article.headings || [];
+  const others   = [...ARTICLES].filter(x => x.id !== article.id && x.body)
     .sort((x, y) => new Date(y.date) - new Date(x.date));
   const next     = others[0];
   const dateStr  = new Date(article.date).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
@@ -675,9 +707,9 @@ function buildArticle(article) {
     <div class="art-hero__overlay"></div>
     <div class="art-hero__content">
       <div class="art-hero__inner">
-        <a href="/country/${article.country}/" class="art-hero__kicker">${esc(a.kicker)}</a>
-        <h1 class="art-hero__h1">${esc(a.title)}</h1>
-        <p class="art-hero__dek">${esc(a.dek)}</p>
+        <a href="/country/${article.country}/" class="art-hero__kicker">${esc(article.kicker)}</a>
+        <h1 class="art-hero__h1">${esc(article.title)}</h1>
+        <p class="art-hero__dek">${esc(article.dek)}</p>
       </div>
     </div>
   </div>
@@ -703,7 +735,7 @@ function buildArticle(article) {
       <article class="art-body" itemscope itemtype="https://schema.org/Article">
         <meta itemprop="author" content="Lina Bachir">
         <meta itemprop="datePublished" content="${article.date}">
-        ${renderBody(a.body)}
+        ${article.body}
       </article>
     </div>
   </div>
@@ -717,8 +749,8 @@ function buildArticle(article) {
   </div>` : ''}`;
 
   write(path.join(DIST, 'articles', article.id, 'index.html'), shell({
-    title:    `${a.title} — created.bylina`,
-    desc:     a.dek,
+    title:    `${article.title} — created.bylina`,
+    desc:     article.dek,
     canonical:`/articles/${article.id}/`,
     og:       { type:'article', date:article.date },
     current:  null,
@@ -928,7 +960,7 @@ function buildSitemap() {
   const staticUrls = ['/', '/destinations/', '/solo/', '/about/', '/collab/'];
   const contUrls   = CONTINENTS.filter(c=>c.visited).map(c=>`/continent/${c.id}/`);
   const countryUrls= COUNTRIES.map(c=>`/country/${c.id}/`);
-  const artUrls    = ARTICLES.filter(a=>a.fr.body).map(a=>`/articles/${a.id}/`);
+  const artUrls    = ARTICLES.filter(a=>a.body).map(a=>`/articles/${a.id}/`);
 
   const all = [...staticUrls, ...contUrls, ...countryUrls, ...artUrls];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -951,6 +983,7 @@ function copyAssets() {
   copy(path.join(__dirname, 'static', 'site.js'),   path.join(DIST, 'site.js'));
   copyDir(path.join(__dirname, 'assets'),            path.join(DIST, 'assets'));
   copyDir(path.join(__dirname, 'uploads'),           path.join(DIST, 'uploads'));
+  copyDir(path.join(__dirname, 'admin'),             path.join(DIST, 'admin'));
 }
 
 // ---------------------------------------------------------------------------
